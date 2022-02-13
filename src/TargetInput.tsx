@@ -16,9 +16,12 @@ const ARROW_SIZE = 15;
 const SCALE_FACTOR = 4;
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
   container: {
     position: 'relative',
-    flex: 1,
   },
   straw: {
     position: 'relative',
@@ -54,11 +57,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     position: 'absolute',
   },
+  glassPanel: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
 });
 
 type ArrowType = {
   x: number;
   y: number;
+};
+
+type PanContext = {
+  cursorOriginX: number;
+  cursorOriginY: number;
+  translateX: number;
+  translateY: number;
 };
 
 export default function TargetInput() {
@@ -79,19 +96,19 @@ export default function TargetInput() {
   const strawAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        {scale: withTiming(pressed.value ? SCALE_FACTOR : 1)},
         {translateX: -translateX.value},
         {translateY: -translateY.value},
+        {scale: pressed.value ? SCALE_FACTOR : 1},
+        {translateX: translateX.value},
+        {translateY: translateY.value},
       ],
     };
   });
 
   const cursorAnimatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{scale: SCALE_FACTOR}],
-      left: cursorX.value,
-      top: cursorY.value,
       opacity: pressed.value ? 1 : 0,
+      transform: [{translateX: cursorX.value}, {translateY: cursorY.value}],
     };
   });
 
@@ -99,49 +116,51 @@ export default function TargetInput() {
     setArrows(old => [...old, arrow]);
   };
 
-  const handleGestureEvent =
-    useAnimatedGestureHandler<PanGestureHandlerGestureEvent>({
-      onStart: event => {
-        pressed.value = true;
-        const startX = event.x - targetSize / 2;
-        const startY = event.y - targetSize / 2;
-        translateX.value = withTiming(startX);
-        translateY.value = withTiming(startY);
-        cursorX.value = event.absoluteX;
-        cursorY.value = event.absoluteY;
-      },
-      onActive: event => {
-        cursorX.value = event.absoluteX;
-        cursorY.value = event.absoluteY;
-      },
-      onEnd: event => {
-        runOnJS(addArrow)({x: event.x, y: event.y});
-        pressed.value = false;
-        translateX.value = withTiming(0);
-        translateY.value = withTiming(0);
-      },
-      onCancel: () => {
-        pressed.value = false;
-        translateX.value = withTiming(0);
-        translateY.value = withTiming(0);
-      },
-      onFail: event => {
-        runOnJS(addArrow)({x: event.x, y: event.y});
-        pressed.value = false;
-        translateX.value = withTiming(0);
-        translateY.value = withTiming(0);
-      },
-    });
+  const handleGestureEvent = useAnimatedGestureHandler<
+    PanGestureHandlerGestureEvent,
+    PanContext
+  >({
+    onStart: (event, ctx) => {
+      pressed.value = true;
+
+      translateX.value = ctx.translateX = targetSize / 2 - event.x;
+      translateY.value = ctx.translateY = targetSize / 2 - event.y - 50;
+
+      cursorX.value = ctx.cursorOriginX = -(targetSize / 2 - event.x);
+      cursorY.value = ctx.cursorOriginY = -(targetSize / 2 - event.y);
+    },
+    onActive: (event, ctx) => {
+      cursorX.value = ctx.cursorOriginX + event.translationX / SCALE_FACTOR;
+      cursorY.value = ctx.cursorOriginY + event.translationY / SCALE_FACTOR;
+    },
+    onEnd: (event, ctx) => {
+      runOnJS(addArrow)({
+        x: targetSize / 2 - ctx.translateX + event.translationX / SCALE_FACTOR,
+        y:
+          targetSize / 2 -
+          ctx.translateY +
+          event.translationY / SCALE_FACTOR -
+          50,
+      });
+      pressed.value = false;
+      translateX.value = withTiming(0);
+      translateY.value = withTiming(0);
+    },
+    onFail: (event, ctx) => {
+      runOnJS(addArrow)({
+        x: targetSize / 2 - ctx.translateX,
+        y: targetSize / 2 - ctx.translateY - 50,
+      });
+      pressed.value = false;
+      translateX.value = withTiming(0);
+      translateY.value = withTiming(0);
+    },
+  });
 
   return (
-    <View style={styles.container} onLayout={handleLayout}>
-      <PanGestureHandler onGestureEvent={handleGestureEvent}>
-        <Animated.View
-          style={[
-            styles.straw,
-            {width: targetSize, height: targetSize},
-            strawAnimatedStyle,
-          ]}>
+    <View style={styles.root} onLayout={handleLayout}>
+      <View style={[styles.container, {width: targetSize, height: targetSize}]}>
+        <Animated.View style={[styles.straw, strawAnimatedStyle]}>
           <Circle color="#FAFAFA" size={(targetSize * 11) / 12}>
             <Circle color="#FAFAFA" size={(targetSize * 10) / 12}>
               <Circle color="#212121" size={(targetSize * 9) / 12}>
@@ -180,9 +199,21 @@ export default function TargetInput() {
               ]}
             />
           ))}
+          <Animated.View
+            style={[
+              styles.arrow,
+              {
+                left: targetSize / 2 - ARROW_SIZE / 2,
+                top: targetSize / 2 - ARROW_SIZE / 2,
+              },
+              cursorAnimatedStyle,
+            ]}
+          />
         </Animated.View>
-      </PanGestureHandler>
-      <Animated.View style={[styles.arrow, cursorAnimatedStyle]} />
+        <PanGestureHandler onGestureEvent={handleGestureEvent} minDist={1}>
+          <Animated.View style={styles.glassPanel} />
+        </PanGestureHandler>
+      </View>
     </View>
   );
 }
