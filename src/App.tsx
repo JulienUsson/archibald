@@ -9,10 +9,12 @@ import {
 import React from 'react';
 import {SafeAreaView} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import HomeScreen from './screens/HomeScreen';
+import HomeScreen from './screens/Home/HomeScreen';
 import theme from './theme';
+import FreeTrainingScreen from './screens/FreeTrainingScreen';
+import {RootStackParamList} from './routes';
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 const defaultScreenOptions: NativeStackNavigationOptions = {headerShown: false};
 
 export default function App() {
@@ -23,6 +25,10 @@ export default function App() {
           <SafeAreaView style={{flex: 1}}>
             <Stack.Navigator screenOptions={defaultScreenOptions}>
               <Stack.Screen name="Home" component={HomeScreen} />
+              <Stack.Screen
+                name="FreeTraining"
+                component={FreeTrainingScreen}
+              />
             </Stack.Navigator>
           </SafeAreaView>
         </ThemeProvider>

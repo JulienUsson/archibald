@@ -1,3 +1,8 @@
 {
-    "home.title": "Accueil"
+    "home.title": "Bonjour,",
+    "home.subtitle": "Que voulez vous faire aujourd'hui ?",
+    "home.freeTraining": "Entraînement libre",
+    "home.tournament": "Tournoi",
+    "home.bows": "Mes arcs",
+    "home.settings": "Paramètres"
 }

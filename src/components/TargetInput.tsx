@@ -12,7 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-const ARROW_SIZE = 15;
+const ARROW_SIZE = 6;
 const SCALE_FACTOR = 4;
 
 const styles = StyleSheet.create({
